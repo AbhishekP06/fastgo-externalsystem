@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<flow name="fastgo-externalsystemFlow" doc:id="41fea61b-ba22-4477-b5fc-17cf59e3e448" >
+		<http:listener doc:name="Listener" doc:id="15c8285b-9c62-4095-a20b-8282f5438080" config-ref="HTTP_Listener_config" path="${http.listener.path}">
+			<http:error-response statusCode="#[vars.statusCode as Number]" >
+				<http:body ><![CDATA[#[vars.errorMsg default "Critical Error"]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<ee:transform doc:name="Transform Message" doc:id="a0915f8b-dfc4-4a72-8e51-96942615e126">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="serviceType"><![CDATA[%dw 2.0
+output application/java
+---
+attributes.uriParams.serviceType]]></ee:set-variable>
+				<ee:set-variable variableName="transactionId" ><![CDATA[%dw 2.0
+output application/java
+---
+attributes.headers.transactionId]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="f9885aa3-e5ee-4225-8ca6-ce6dede37d3a" message="Request Received For FastGo External System For TransactionId: #[vars.transactionId]"/>
+		<choice doc:name="Choice" doc:id="2f2265a5-7190-4e96-8fe0-fa0f16d9f3e5" >
+			<when expression='#[vars.serviceType == "routes"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="945e9b6e-9324-4412-9004-8aff9acd58e3" message="Route Flow Called For FastGo External System For TransactionId: #[vars.transactionId]"/>
+				<flow-ref doc:name="Flow Reference" doc:id="5519eb35-c98c-4eae-b372-ed77f29e2858" name="FastGo-GetRoutes-implementationSub_Flow"/>
+			</when>
+			<when expression='#[vars.serviceType == "schedules"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="6e2d44ea-6a24-4ff4-a6b0-650986dfaa40" message="Schedule Flow Called For FastGo External System For TransactionId: #[vars.transactionId]"/>
+				<flow-ref doc:name="Flow Reference" doc:id="b906d5af-8f22-4e34-988c-5177bea26bbe" name="FastGo-GetSchedules-implementationSub_Flow"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="902e7394-510a-44bf-90f9-62dcd37750b3" message="URI Parameter Is Not Correct For FastGo External System For TransactionId: #[vars.transactionId]"/>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="0c9dd9c4-3800-4b89-be1f-8253fefb95bf" message="Response Sent For FastGo External System For TransactionId: #[vars.transactionId]"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="be2ca2ea-01c6-44b8-92c7-730084b5c593" >
+				<logger level="INFO" doc:name="Logger" doc:id="b0d12413-9f91-4f3a-a3b8-186efb17c61b" message="Error Occcured for FastGo External System For TransactionId: #[vars.transactionId] reason : #[error.errorMessage] error Type: #[error.errorType]"/>
+				<ee:transform doc:name="Transform Message" doc:id="8eb016b2-3e59-4f63-acd2-cdefeb3b688b" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	
+}]]></ee:set-payload>
+
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="statusCode" ><![CDATA[%dw 2.0
+output application/json
+---
+500]]></ee:set-variable>
+						<ee:set-variable variableName="errorMsg" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"ErrorCode": "XE1023",
+	"ErrorMessage": "Error in FastGo System"
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

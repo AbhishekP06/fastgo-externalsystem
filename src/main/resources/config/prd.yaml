@@ -1,0 +1,13 @@
+http:
+  listener:
+    host: "0.0.0.0"
+    port: "9091"
+    path: "/fastGo/{serviceType}"
+    
+db:
+  mysql:
+    host: "127.0.0.1"
+    port: "3306"
+    username: "root"
+    password: "root"
+    dbname: "newdb"
